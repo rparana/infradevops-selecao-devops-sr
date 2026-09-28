@@ -1,0 +1,87 @@
+name: CD Pipeline (GCP GKE Deploy)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  GKE_CLUSTER: ${{ vars.GKE_CLUSTER_NAME || 'dev-comments-gke' }}
+  GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || 'comments-repo' }}
+  WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+  WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+  IMAGE_NAME: comments-api
+
+jobs:
+  deploy:
+    name: Build, Push & Helm Deploy to GKE
+    runs-on: ubuntu-latest
+    if: github.repository == 'rparana/infradevops-selecao-devops-sr'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud via OIDC (Workload Identity)
+        if: env.WIF_PROVIDER != ''
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        if: env.WIF_PROVIDER != ''
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCP Artifact Registry
+        if: env.WIF_PROVIDER != ''
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & Tag Container Image
+        run: |
+          IMAGE_URI="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}"
+          docker build -t "$IMAGE_URI:${{ github.sha }}" -t "$IMAGE_URI:latest" ./app
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Push Container Image to Artifact Registry
+        if: env.WIF_PROVIDER != ''
+        run: |
+          docker push "$IMAGE_URI:${{ github.sha }}"
+          docker push "$IMAGE_URI:latest"
+
+      - name: Get GKE Credentials
+        if: env.WIF_PROVIDER != ''
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.REGION }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.1
+
+      - name: Deploy Comments API Helm Chart
+        if: env.WIF_PROVIDER != ''
+        run: |
+          helm upgrade --install comments-api ./helm/comments-api \
+            --namespace comments \
+            --create-namespace \
+            --set image.repository="${{ env.IMAGE_URI }}" \
+            --set image.tag="${{ github.sha }}" \
+            --set externalSecrets.enabled=true \
+            --wait \
+            --timeout 5m
+
+      - name: Verify Rollout Status
+        if: env.WIF_PROVIDER != ''
+        run: |
+          kubectl rollout status deployment/comments-api -n comments
