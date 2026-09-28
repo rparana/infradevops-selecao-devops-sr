@@ -9,3 +9,13 @@ docs/agents/
 *.swo
 .idea/
 .vscode/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+app/.venv/
