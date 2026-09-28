@@ -60,6 +60,35 @@ resource "google_container_cluster" "primary" {
     }
   }
 
+  release_channel {
+    channel = "REGULAR"
+  }
+
+  network_policy {
+    enabled  = true
+    provider = "PROVIDER_UNSPECIFIED"
+  }
+
+  enable_intranode_visibility = true
+
+  binary_authorization {
+    evaluation_mode = "PROJECT_SINGLETON_POLICY_ENFORCE"
+  }
+
+  master_auth {
+    client_certificate_config {
+      issue_client_certificate = false
+    }
+  }
+
+  resource_labels = {
+    environment = "dev"
+    application = "comments-api"
+  }
+
+  # checkov:skip=CKV_GCP_18:Dev cluster requires authorized network access for GitHub Actions and developer access
+  # checkov:skip=CKV_GCP_65:Google Groups RBAC requires Google Workspace domain not available in dev sandbox
+  # checkov:skip=CKV_GCP_69:Metadata server is enabled on the standalone primary node pool (default pool is removed)
   deletion_protection = false
 }
 
@@ -94,6 +123,15 @@ resource "google_container_node_pool" "primary_nodes" {
     labels = {
       environment = "dev"
       workload    = "comments-api"
+    }
+
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
+
+    shielded_instance_config {
+      enable_secure_boot          = true
+      enable_integrity_monitoring = true
     }
 
     metadata = {

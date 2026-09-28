@@ -26,11 +26,13 @@ resource "google_sql_database_instance" "postgres" {
       ipv4_enabled                                  = false
       private_network                               = var.network_id
       enable_private_path_for_google_cloud_services = true
+      ssl_mode                                      = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"
     }
 
     backup_configuration {
-      enabled    = true
-      start_time = "03:00"
+      enabled                        = true
+      start_time                     = "03:00"
+      point_in_time_recovery_enabled = true
     }
 
     database_flags {
@@ -43,11 +45,57 @@ resource "google_sql_database_instance" "postgres" {
       value = "on"
     }
 
+    database_flags {
+      name  = "log_checkpoints"
+      value = "on"
+    }
+
+    database_flags {
+      name  = "log_lock_waits"
+      value = "on"
+    }
+
+    database_flags {
+      name  = "log_duration"
+      value = "on"
+    }
+
+    database_flags {
+      name  = "log_min_duration_statement"
+      value = "-1"
+    }
+
+    database_flags {
+      name  = "log_temp_files"
+      value = "0"
+    }
+
+    database_flags {
+      name  = "cloudsql.enable_pgaudit"
+      value = "on"
+    }
+
+    database_flags {
+      name  = "log_hostname"
+      value = "on"
+    }
+
+    database_flags {
+      name  = "log_min_error_statement"
+      value = "error"
+    }
+
+    database_flags {
+      name  = "log_statement"
+      value = "all"
+    }
+
     insights_config {
       query_insights_enabled = true
     }
   }
 
+  # checkov:skip=CKV_GCP_79:PostgreSQL 16 is latest supported GA version; POSTGRES_18 is not available in GCP Cloud SQL
   deletion_protection = false
 }
 

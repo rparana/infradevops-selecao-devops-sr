@@ -12,11 +12,13 @@ resource "google_iam_workload_identity_pool_provider" "provider" {
   project                            = var.project_id
 
   attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.actor"      = "assertion.actor"
-    "attribute.repository" = "assertion.repository"
+    "google.subject"             = "assertion.sub"
+    "attribute.actor"            = "assertion.actor"
+    "attribute.repository"       = "assertion.repository"
+    "attribute.repository_owner" = "assertion.repository_owner"
   }
 
+  # checkov:skip=CKV_GCP_125:Repository is restricted via assertion.repository
   attribute_condition = "assertion.repository == '${var.github_repo}'"
 
   oidc {

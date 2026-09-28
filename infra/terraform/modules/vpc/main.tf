@@ -21,6 +21,31 @@ resource "google_compute_subnetwork" "subnet" {
     range_name    = "gke-services"
     ip_cidr_range = var.services_cidr
   }
+
+  log_config {
+    aggregation_interval = "INTERVAL_10_MIN"
+    flow_sampling        = 0.5
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
+}
+
+resource "google_compute_firewall" "allow_internal" {
+  name        = "${var.network_name}-allow-internal"
+  network     = google_compute_network.vpc.id
+  project     = var.project_id
+  description = "Permitir comunicacao interna entre subnets da VPC"
+
+  allow {
+    protocol = "tcp"
+  }
+  allow {
+    protocol = "udp"
+  }
+  allow {
+    protocol = "icmp"
+  }
+
+  source_ranges = [var.subnet_cidr, var.pods_cidr, var.services_cidr]
 }
 
 resource "google_compute_router" "router" {
