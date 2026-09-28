@@ -20,6 +20,7 @@ resource "google_sql_database_instance" "postgres" {
     availability_type = "ZONAL"
     disk_size         = 10
     disk_type         = "PD_SSD"
+    edition           = "ENTERPRISE"
 
     ip_configuration {
       ipv4_enabled                                  = false

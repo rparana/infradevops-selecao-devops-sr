@@ -42,7 +42,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
       "id": 2,
       "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"], "values": false } },
-      "targets": [{ "expr": "sum(rate(http_requests_total{job=\"comments-api\"}[1m]))", "legendFormat": "Throughput", "refId": "A" }],
+      "targets": [{ "expr": "sum(rate(http_requests_total{job=\"comments-api\"}[1m])) or vector(0)", "legendFormat": "Throughput", "refId": "A" }],
       "title": "Throughput Total (RPS)",
       "type": "stat"
     },
@@ -54,7 +54,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
       "id": 3,
       "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"], "values": false } },
-      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"comments-api\"}[1m])) by (le))", "legendFormat": "p95 Latência", "refId": "A" }],
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"comments-api\"}[5m])) by (le)) or vector(0)", "legendFormat": "p95 Latência", "refId": "A" }],
       "title": "Latência p95 (SLO < 200ms)",
       "type": "stat"
     },
@@ -66,7 +66,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
       "id": 4,
       "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"], "values": false } },
-      "targets": [{ "expr": "(sum(rate(http_requests_total{job=\"comments-api\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{job=\"comments-api\"}[1m]))) * 100", "legendFormat": "5xx Rate", "refId": "A" }],
+      "targets": [{ "expr": "((sum(rate(http_requests_total{job=\"comments-api\",status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_requests_total{job=\"comments-api\"}[5m])), 1)) * 100", "legendFormat": "5xx Rate", "refId": "A" }],
       "title": "Taxa de Erro 5xx (SLO < 1%)",
       "type": "stat"
     },
