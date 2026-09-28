@@ -46,6 +46,8 @@ Internet ──HTTPS──> │   │   │  (Private Nodes)  │ ────�
 - [ADR-0009: Migrações de Banco Resilientes (Alembic)](docs/adr/0009-database-migrations-lifespan-alembic.md)
 - [ADR-0010: Container Hardening Não-Root](docs/adr/0010-container-security-multistage-nonroot.md)
 - [ADR-0011: Validação Dual (Local & Cloud)](docs/adr/0011-local-dev-and-simulation.md)
+- [ADR-0012: IaC Security Hardening e Checkov](docs/adr/0012-iac-security-hardening-checkov.md)
+- [Relatório de Auditoria de Segurança de IaC (Checkov)](docs/security/iac-security-checkov.md)
 
 ---
 

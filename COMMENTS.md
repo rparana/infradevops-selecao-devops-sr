@@ -12,17 +12,18 @@ As decisões arquiteturais fundamentais estão formalizadas nos seguintes **Arch
 
 | ADR | Título | Resumo da Decisão |
 | :--- | :--- | :--- |
-| [ADR-0001](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0001-cloud-provider-gcp.md) | Target Cloud Provider: GCP | Padronização integral no Google Cloud Platform para máxima aderência à stack da empresa. |
-| [ADR-0002](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0002-compute-gke-standard.md) | Compute: GKE Standard | GKE Standard com node pool otimizado para controle fino de custos, DaemonSets e HPA. |
-| [ADR-0003](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0003-api-stack-fastapi.md) | Backend Stack: Python FastAPI | FastAPI + SQLAlchemy + asyncpg, com OpenAPI em `/docs` e instrumentação Prometheus nativa. |
-| [ADR-0004](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0004-ci-cd-github-actions-oidc.md) | CI/CD: GitHub Actions OIDC | Autenticação keyless via Workload Identity Federation, eliminando credenciais estáticas. |
-| [ADR-0005](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0005-database-cloudsql-private-ip.md) | Database: Cloud SQL Postgres | PostgreSQL 16 em Private IP (Private Services Access / PSC), sem IP público. |
-| [ADR-0006](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0006-secrets-external-secrets-operator.md) | Segredos: ESO + Secret Manager | External Secrets Operator sincronizando do Secret Manager via Workload Identity. |
-| [ADR-0007](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0007-iac-modular-terraform.md) | IaC: Terraform Modular | Módulos desacoplados (`vpc`, `gke`, `cloudsql`, `secrets`, `workload_identity_federation`). |
-| [ADR-0008](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0008-observability-and-sre.md) | Observabilidade e SRE | Prometheus, dashboard Grafana JSON, alert rules, HPA, SLO/SLI e Runbooks operacionais. |
-| [ADR-0009](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0009-database-migrations-lifespan-alembic.md) | Migrações de Banco | Inicialização assíncrona tolerante no lifespan + migrações estruturadas no Alembic. |
-| [ADR-0010](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0010-container-security-multistage-nonroot.md) | Segurança do Container | Multi-stage build com `python:3.12-slim`, rodando com usuário `appuser` (UID 10001). |
-| [ADR-0011](file:///Users/rparana/dev/private/tests/infradevops-selecao-devops-sr/docs/adr/0011-local-dev-and-simulation.md) | Validação Dual (Local & Cloud) | Docker Compose completo (API, DB, Prom, Grafana provisionado) + deploy em cluster KinD. |
+| [ADR-0001](docs/adr/0001-cloud-provider-gcp.md) | Target Cloud Provider: GCP | Padronização integral no Google Cloud Platform para máxima aderência à stack da empresa. |
+| [ADR-0002](docs/adr/0002-compute-gke-standard.md) | Compute: GKE Standard | GKE Standard com node pool otimizado para controle fino de custos, DaemonSets e HPA. |
+| [ADR-0003](docs/adr/0003-api-stack-fastapi.md) | Backend Stack: Python FastAPI | FastAPI + SQLAlchemy + asyncpg, com OpenAPI em `/docs` e instrumentação Prometheus nativa. |
+| [ADR-0004](docs/adr/0004-ci-cd-github-actions-oidc.md) | CI/CD: GitHub Actions OIDC | Autenticação keyless via Workload Identity Federation, eliminando credenciais estáticas. |
+| [ADR-0005](docs/adr/0005-database-cloudsql-private-ip.md) | Database: Cloud SQL Postgres | PostgreSQL 16 em Private IP (Private Services Access / PSC), sem IP público. |
+| [ADR-0006](docs/adr/0006-secrets-external-secrets-operator.md) | Segredos: ESO + Secret Manager | External Secrets Operator sincronizando do Secret Manager via Workload Identity. |
+| [ADR-0007](docs/adr/0007-iac-modular-terraform.md) | IaC: Terraform Modular | Módulos desacoplados (`vpc`, `gke`, `cloudsql`, `secrets`, `workload_identity_federation`). |
+| [ADR-0008](docs/adr/0008-observability-and-sre.md) | Observabilidade e SRE | Prometheus, dashboard Grafana JSON, alert rules, HPA, SLO/SLI e Runbooks operacionais. |
+| [ADR-0009](docs/adr/0009-database-migrations-lifespan-alembic.md) | Migrações de Banco | Inicialização assíncrona tolerante no lifespan + migrações estruturadas no Alembic. |
+| [ADR-0010](docs/adr/0010-container-security-multistage-nonroot.md) | Segurança do Container | Multi-stage build com `python:3.12-slim`, rodando com usuário `appuser` (UID 10001). |
+| [ADR-0011](docs/adr/0011-local-dev-and-simulation.md) | Validação Dual (Local & Cloud) | Docker Compose completo (API, DB, Prom, Grafana provisionado) + deploy em cluster KinD. |
+| [ADR-0012](docs/adr/0012-iac-security-hardening-checkov.md) | Hardening de IaC (Checkov) | Hardening de GKE, Cloud SQL e VPC alinhado a CIS Benchmarks com zero falhas no Checkov. |
 
 ---
 
@@ -47,9 +48,10 @@ O teste requer dimensionamento consciente com uso de tamanhos mínimos e boas pr
 ## 3. Estratégia de Segurança e Least Privilege
 
 - **Sem chaves estáticas:** O pipeline GitHub Actions conecta no GCP via OIDC (Workload Identity Federation) trocando tokens efêmeros com escopo limitado ao repositório.
-- **Isolamento de Banco:** A instância do Cloud SQL não possui IP público atribuído; o acesso ocorre exclusivamente através de IP privado peered na VPC.
+- **Isolamento de Banco:** A instância do Cloud SQL não possui IP público atribuído; o acesso ocorre exclusivamente através de IP privado peered na VPC com `ssl_mode = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"`.
 - **Injeção de Segredos Segura:** A aplicação não armazena credenciais em variáveis de ambiente abertas nos arquivos de manifesto. O External Secrets Operator gerencia a reconciliação direta a partir do GCP Secret Manager.
-- **Hardening de Imagem:** A imagem de container roda com usuário sem privilégios (`appuser` UID 10001) e passa por varredura automatizada com **Trivy** e análise estática de IaC com **Checkov** no pipeline CI/CD.
+- **Hardening de Container:** A imagem de container roda com usuário sem privilégios (`appuser` UID 10001) e passa por varredura com **Trivy**.
+- **Hardening de IaC (Checkov):** Todo o código Terraform passa por análise estática de conformidade e segurança com o Checkov. O resultado obtido foi de **84 checks aprovados e 0 falhas**, com relatório detalhado disponível em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
 
 ---
 
@@ -84,6 +86,15 @@ Durante o ciclo de desenvolvimento, foram validadas as seguintes camadas de qual
 5. **Validação de IaC Terraform:**
    - `terraform fmt -check` e `terraform validate` executados no ambiente `environments/dev/`.
    - Resultado: `Success! The configuration is valid.`
+6. **Auditoria de Segurança de IaC (Checkov):**
+   - Varredura de conformidade CIS Benchmark para GCP sobre todos os módulos de IaC.
+   - Resultado: **84 passed, 0 failed, 5 skipped** (com justificativas arquiteturais). Relatório completo em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
+7. **Evidências Visuais e Operacionais (Screenshots em `docs/evidences/`):**
+   - `terraform-apply.png`: Execução do provisionamento completo da infraestrutura no GCP via Terraform.
+   - `cloudsql.png`: Instância Cloud SQL PostgreSQL provisionada com Private IP e políticas de SSL.
+   - `gsm.png`: Google Secret Manager com segredos armazenados e integrados ao External Secrets Operator.
+   - `prometheus-local.png`: Alvos de scraping ativos e métricas da API sendo coletadas com sucesso.
+   - `graffana-local.png`: Dashboard executivo e operacional exibindo latência, taxa de erros e volume de requisições.
 
 ---
 
