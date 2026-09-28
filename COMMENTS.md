@@ -65,10 +65,41 @@ Para o serviço de Comentários (`comments-api`), estabelecemos os seguintes obj
 
 ---
 
-## 5. Transparência de Ferramentas, Boilerplates e IA
+## 5. Testes Executados e Evidências
+
+Durante o ciclo de desenvolvimento, foram validadas as seguintes camadas de qualidade:
+
+1. **Testes Unitários e de Integração da API (Pytest):**
+   - 6 testes cobrindo healthcheck, métricas Prometheus, criação de comentários, validações de payload (email inválido, corpo vazio) e listagem filtrada por matéria.
+   - Resultado: 100% aprovados em 0.12s.
+2. **Hardening de Container e Usuário Não-Root:**
+   - Container executado localmente e inspecionado via `docker exec id`.
+   - Resultado: `uid=10001(appuser) gid=10001(appgroup)`.
+3. **Ambiente Local Multi-Container (Docker Compose):**
+   - 4 serviços orquestrados: `comments-postgres`, `comments-api`, `comments-prometheus`, `comments-grafana`.
+   - Resultado: Inserção de dados persistida no PostgreSQL, Prometheus coletando métricas em tempo real (`health: up`), Grafana respondendo com dashboard provisionado em `http://localhost:3000`.
+4. **Validação Sintática de Helm:**
+   - `helm lint` executado no chart `helm/comments-api`.
+   - Resultado: `1 chart(s) linted, 0 chart(s) failed`.
+5. **Validação de IaC Terraform:**
+   - `terraform fmt -check` e `terraform validate` executados no ambiente `environments/dev/`.
+   - Resultado: `Success! The configuration is valid.`
+
+---
+
+## 6. Ideias de Evolução Futura (Com Mais Tempo)
+
+1. **Canary Releases com Argo Rollouts ou Flagger:** Implementar análise automatizada de métricas (taxa de erro e latência) para promoção progressiva de tráfego durante rollouts.
+2. **Service Mesh (Istio ou Linkerd):** Implementar mTLS estrito entre todos os serviços no cluster, autorização granular com `AuthorizationPolicy` e tracing distribuído com OpenTelemetry / Jaeger.
+3. **FinOps Contínuo com Infracost:** Integrar o Infracost nos Pull Requests do GitHub Actions para estimar o impacto financeiro de qualquer alteração de IaC antes do merge.
+4. **Centralização de Logs com Grafana Loki ou Cloud Logging:** Exportar logs estruturados em JSON via fluentbit/promtail com correlação direta entre trace IDs e logs de erro.
+
+---
+
+## 7. Transparência de Ferramentas, Boilerplates e IA
 
 Em conformidade com as orientações do desafio:
 
 - **Ferramentas de IA Utilizadas:** Pair-programming e automação assistida por IA (Google Antigravity IDE / Gemini 3.8 Flash) utilizada para exploração de trade-offs de design, redação de ADRs, estruturação de manifests e testes de regressão.
 - **Boilerplates / Templates:** Estrutura base de módulos Terraform seguindo as melhores práticas do Google Cloud Foundation Toolkit; instrumentação Prometheus via biblioteca oficial `prometheus-fastapi-instrumentator`.
-- **Tempo Estimado Gasto:** Planejamento e design (1.5h), implementação e testes (em andamento).
+- **Tempo Estimado Gasto:** Planejamento e design (1.5h), implementação completa e testes (3.5h).
