@@ -116,6 +116,17 @@ chmod +x ops/scripts/test-local-kind.sh
 
 ---
 
+### Opção 4: Dev Container (Zero Instalação na Máquina Host)
+O repositório possui suporte nativo a **Dev Containers** (`.devcontainer/`). Ao abrir este projeto no VS Code ou Antigravity IDE com a extensão Remote - Containers:
+1. Pressione `F1` (ou `Ctrl/Cmd + Shift + P`) e selecione **"Dev Containers: Reopen in Container"**.
+2. O container provisionará automaticamente todas as ferramentas necessárias no PATH:
+   - **Terraform**, **Helm 3**, **Kubectl**, **Google Cloud CLI (`gcloud`)**
+   - **Docker CLI** (integrado ao daemon do host), **KinD**, **Trivy** e **Checkov**
+   - Python 3.12 com virtualenv e dependências já instaladas
+   - Extensões do VS Code pré-configuradas para syntax highlight e formatação de Terraform, Python e YAML.
+
+---
+
 ## ☁️ Provisionamento na Nuvem (GCP via Terraform)
 
 A infraestrutura está modularizada em `infra/terraform/modules/` e o ambiente de desenvolvimento em `infra/terraform/environments/dev/`.
