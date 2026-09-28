@@ -1,0 +1,4 @@
+project_id  = "seu-projeto-gcp"
+region      = "us-central1"
+environment = "dev"
+github_repo = "rparana/infradevops-selecao-devops-sr"
