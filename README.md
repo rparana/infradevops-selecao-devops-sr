@@ -91,6 +91,36 @@ curl http://localhost:8000/health
 
 ---
 
+### 📬 Testando via Postman e Insomnia (Coleções Prontas com Variáveis)
+
+Disponibilizamos coleções completas e parametrizadas para testar todos os endpoints (`POST /api/comment/new`, `GET /api/comment/list/{id}`, `/health`, `/metrics`) sem necessidade de configuração manual:
+
+#### 1. Postman
+Os arquivos estão versionados em [ops/postman/](ops/postman/):
+- **Collection:** `ops/postman/comments-api.postman_collection.json`
+- **Environment:** `ops/postman/comments-api.postman_environment.json`
+
+**Como importar e utilizar no Postman:**
+1. Abra o Postman e clique no botão **Import** (canto superior esquerdo).
+2. Selecione e importe os dois arquivos JSON de `ops/postman/`.
+3. No seletor de ambientes (canto superior direito do Postman), selecione **"Comments API — Local Environment"**.
+4. **Variáveis configuradas:**
+   - `{{base_url}}`: por padrão aponta para `http://localhost:8000`. Altere para `http://localhost` para testar no KinD ou para a URL do Load Balancer em nuvem.
+   - `{{content_id}}`: define o ID da matéria para teste (padrão: `42`).
+
+#### 2. Insomnia
+O arquivo de exportação está versionado em [ops/insomnia/](ops/insomnia/):
+- **Workspace:** `ops/insomnia/comments-api.insomnia_collection.json`
+
+**Como importar e utilizar no Insomnia:**
+1. Abra o Insomnia e clique no menu do Workspace (canto superior esquerdo) > **Import**.
+2. Escolha **"From File"** e selecione `ops/insomnia/comments-api.insomnia_collection.json`.
+3. O Workspace **"Comments API — DevOps Sênior"** será criado com as pastas *Comments* e *Observability*.
+4. **Variáveis de Ambiente:**
+   - Acesse **Manage Environments** (`Ctrl/Cmd + E`) para visualizar ou alterar `base_url` e `content_id`.
+
+---
+
 ### Opção 2: Testes Unitários e de Integração Locais
 Para rodar a suíte automatizada de testes com Pytest:
 

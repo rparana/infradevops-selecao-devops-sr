@@ -1,0 +1,120 @@
+{
+  "info": {
+    "_postman_id": "c7a8b3d1-9f24-4e18-8a21-9d8e5f1b2c34",
+    "name": "Comments API — DevOps Sênior",
+    "description": "Coleção de testes para a Comments API desenvolvida para o Desafio Técnico de Analista DevOps Sênior. Contém requests parametrizados com variáveis de ambiente para fácil alternância entre Localhost, KinD e Nuvem (GCP).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "content_id",
+      "value": "42",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Comments",
+      "description": "Endpoints funcionais de inserção e consulta de comentários",
+      "item": [
+        {
+          "name": "Criar Novo Comentário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"devops.sr@empresa.com\",\n  \"comment\": \"Excelente artigo sobre Kubernetes, GCP e Observabilidade!\",\n  \"content_id\": {{content_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/comment/new",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "comment",
+                "new"
+              ]
+            },
+            "description": "Insere um novo comentário associado a um content_id específico no banco de dados relacional."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Comentários por Matéria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/comment/list/{{content_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "comment",
+                "list",
+                "{{content_id}}"
+              ]
+            },
+            "description": "Lista todos os comentários da matéria identificada por {{content_id}}, ordenados por data decrescente."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Observability",
+      "description": "Endpoints de integridade e telemetria",
+      "item": [
+        {
+          "name": "Health Check Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Endpoint consumido pelos probes de liveness e readiness do Kubernetes. Verifica conectividade com PostgreSQL."
+          },
+          "response": []
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/metrics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            },
+            "description": "Retorna métricas em formato texto padrão do Prometheus para ingestão pelo scraper."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

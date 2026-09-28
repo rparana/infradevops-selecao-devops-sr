@@ -1,0 +1,96 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-09-28T20:50:00.000Z",
+  "__export_source": "insomnia.desktop.app:v9.3.3",
+  "resources": [
+    {
+      "_id": "wrk_comments_api",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "Comments API — DevOps Sênior",
+      "description": "Workspace de testes para a Comments API com variáveis de ambiente configuráveis para Localhost, KinD e Nuvem.",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base_comments",
+      "_type": "environment",
+      "parentId": "wrk_comments_api",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8000",
+        "content_id": 42
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url",
+          "content_id"
+        ]
+      },
+      "color": "#3f51b5",
+      "isPrivate": false
+    },
+    {
+      "_id": "fld_comments",
+      "_type": "request_group",
+      "parentId": "wrk_comments_api",
+      "name": "Comments",
+      "description": "Endpoints funcionais de inserção e consulta de comentários"
+    },
+    {
+      "_id": "req_create_comment",
+      "_type": "request",
+      "parentId": "fld_comments",
+      "name": "Criar Novo Comentário",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/comment/new",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"devops.sr@empresa.com\",\n  \"comment\": \"Excelente artigo sobre Kubernetes, GCP e Observabilidade!\",\n  \"content_id\": {{ _.content_id }}\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_list_comments",
+      "_type": "request",
+      "parentId": "fld_comments",
+      "name": "Listar Comentários por Matéria",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/comment/list/{{ _.content_id }}",
+      "body": {},
+      "headers": []
+    },
+    {
+      "_id": "fld_observability",
+      "_type": "request_group",
+      "parentId": "wrk_comments_api",
+      "name": "Observability",
+      "description": "Endpoints de probes e telemetria"
+    },
+    {
+      "_id": "req_health_check",
+      "_type": "request",
+      "parentId": "fld_observability",
+      "name": "Health Check Probe",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "body": {},
+      "headers": []
+    },
+    {
+      "_id": "req_prometheus_metrics",
+      "_type": "request",
+      "parentId": "fld_observability",
+      "name": "Prometheus Metrics",
+      "method": "GET",
+      "url": "{{ _.base_url }}/metrics",
+      "body": {},
+      "headers": []
+    }
+  ]
+}
