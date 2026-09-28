@@ -1,0 +1,3 @@
+# 7. Infrastructure as Code: Modular Terraform Architecture
+
+A infraestrutura no GCP será modularizada em `infra/terraform/modules/` contendo componentes especializados e desacoplados: `vpc` (rede, subnets, Cloud Router e NAT), `gke` (cluster Standard, node pools e Workload Identity), `cloudsql` (instância Postgres em IP privado), `secrets` (Secret Manager) e `workload_identity_federation` (integração OIDC com GitHub Actions). O consumo e instanciação desses módulos dar-se-á via ambientes estruturados (`infra/terraform/environments/dev/`), facilitando testes com Checkov, auditorias de segurança e controle de custos.
