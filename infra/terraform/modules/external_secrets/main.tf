@@ -44,7 +44,7 @@ resource "helm_release" "external_secrets" {
 
   set {
     name  = "installCRDs"
-    value = "true"
+    value = "false"
   }
 
   set {
@@ -74,9 +74,8 @@ resource "helm_release" "external_secrets" {
     value = "false"
   }
 
-  wait          = true
-  wait_for_jobs = true
-  timeout       = 300
+  wait          = false
+  wait_for_jobs = false
 
   depends_on = [
     google_service_account_iam_member.eso_workload_identity_user
