@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.15"
+    }
   }
 
   # Configuração de Backend remoto (descomente e substitua o bucket para uso em equipe)
@@ -22,6 +26,22 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+}
+
+data "google_client_config" "default" {}
+
+provider "kubernetes" {
+  host                   = "https://${module.gke.cluster_endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(module.gke.cluster_ca_certificate)
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = "https://${module.gke.cluster_endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(module.gke.cluster_ca_certificate)
+  }
 }
 
 # 1. Módulo de Rede (VPC, Subnets privadas, Cloud NAT e Private IP Peering)
@@ -77,3 +97,10 @@ module "workload_identity_federation" {
   github_repo = var.github_repo
   provider_id = var.provider_id
 }
+
+# 6. Módulo External Secrets Operator (Operador de plataforma e CRDs via Helm)
+module "external_secrets" {
+  source     = "../../modules/external_secrets"
+  depends_on = [module.gke]
+}
+

@@ -17,8 +17,8 @@ As decisões arquiteturais fundamentais estão formalizadas nos seguintes **Arch
 | [ADR-0003](docs/adr/0003-api-stack-fastapi.md) | Backend Stack: Python FastAPI | FastAPI + SQLAlchemy + asyncpg, com OpenAPI em `/docs` e instrumentação Prometheus nativa. |
 | [ADR-0004](docs/adr/0004-ci-cd-github-actions-oidc.md) | CI/CD: GitHub Actions OIDC | Autenticação keyless via Workload Identity Federation, eliminando credenciais estáticas. |
 | [ADR-0005](docs/adr/0005-database-cloudsql-private-ip.md) | Database: Cloud SQL Postgres | PostgreSQL 16 em Private IP (Private Services Access / PSC), sem IP público. |
-| [ADR-0006](docs/adr/0006-secrets-external-secrets-operator.md) | Segredos: ESO + Secret Manager | External Secrets Operator sincronizando do Secret Manager via Workload Identity. |
-| [ADR-0007](docs/adr/0007-iac-modular-terraform.md) | IaC: Terraform Modular | Módulos desacoplados (`vpc`, `gke`, `cloudsql`, `secrets`, `workload_identity_federation`). |
+| [ADR-0006](docs/adr/0006-secrets-external-secrets-operator.md) | Segredos: ESO + Secret Manager | ESO e CRDs provisionados via Terraform (Helm Provider) e sincronizando do Secret Manager. |
+| [ADR-0007](docs/adr/0007-iac-modular-terraform.md) | IaC: Terraform Modular | Módulos desacoplados (`vpc`, `gke`, `cloudsql`, `secrets`, `workload_identity_federation`, `external_secrets`). |
 | [ADR-0008](docs/adr/0008-observability-and-sre.md) | Observabilidade e SRE | Prometheus, dashboard Grafana JSON, alert rules, HPA, SLO/SLI e Runbooks operacionais. |
 | [ADR-0009](docs/adr/0009-database-migrations-lifespan-alembic.md) | Migrações de Banco | Inicialização assíncrona tolerante no lifespan + migrações estruturadas no Alembic. |
 | [ADR-0010](docs/adr/0010-container-security-multistage-nonroot.md) | Segurança do Container | Multi-stage build com `python:3.12-slim`, rodando com usuário `appuser` (UID 10001). |
@@ -104,10 +104,10 @@ Durante o ciclo de desenvolvimento, foram validadas as seguintes camadas de qual
 
 A engenharia sênior se evidencia na capacidade de diagnosticar problemas complexos, identificar causas-raiz e implementar correções estruturadas. Abaixo estão registrados os principais desafios técnicos enfrentados e mitigados durante os testes e pipelines:
 
-### 6.1. Falha de Dependência das CRDs do External Secrets Operator no Pipeline de CD
-- **Sintoma:** No primeiro teste de deployment automatizado via GitHub Actions CD (`.github/workflows/cd.yml`), o deploy do Helm chart `comments-api` falhou ao tentar aplicar os recursos `ClusterSecretStore` e `ExternalSecret`, retornando erro de tipo de recurso não reconhecido (`unable to recognize: no matches for kind "ExternalSecret" in version "external-secrets.io/v1beta1"`).
-- **Causa Raiz:** O cluster GKE é provisionado via Terraform de forma limpa (sem operadores pré-instalados). Como o Helm chart da aplicação declara manifests que dependem das Custom Resource Definitions (CRDs) do External Secrets Operator (ESO), a API do Kubernetes não conseguia validar nem persistir os objetos.
-- **Resolução:** Adicionou-se uma etapa prévia explícita no pipeline de CD que adiciona o repositório oficial do ESO (`charts.external-secrets.io`), atualiza os índices e executa o deployment do chart do operador com `--set installCRDs=true --wait` antes de iniciar a instalação do chart da aplicação. Isso assegura que as CRDs e os webhooks do operador estejam ativos e prontos para reconciliação.
+### 6.1. Separação de Responsabilidades e Resolução de Dependência das CRDs do ESO
+- **Sintoma:** Durante a automação de deployment, a aplicação declarava recursos `ClusterSecretStore` e `ExternalSecret`, que falhavam caso as Custom Resource Definitions (CRDs) do External Secrets Operator (ESO) não estivessem pré-instaladas no cluster GKE (`unable to recognize: no matches for kind "ExternalSecret" in version "external-secrets.io/v1beta1"`).
+- **Causa Raiz & Problema Arquitetural:** O pipeline de CD da aplicação estava inicialmente acoplado à responsabilidade de provisionar operadores de cluster (infraestrutura/plataforma), misturando o ciclo de vida do software aplicativo com a base de runtime do Kubernetes.
+- **Resolução Arquitetural (Separation of Concerns):** A responsabilidade de instalação do External Secrets Operator e de suas CRDs foi transferida integralmente para a **Infraestrutura como Código (Terraform)** via módulo `modules/external_secrets` e provider `helm`. O pipeline de CD ([.github/workflows/cd.yml](.github/workflows/cd.yml)) foi simplificado, focando estritamente no build, push e deploy do chart da aplicação, garantindo que o ESO e as CRDs já estejam provisionados e saudáveis no cluster no momento em que a aplicação é publicada.
 
 ### 6.2. Violações de Políticas de Segurança no Checkov (IaC Static Analysis)
 - **Sintoma:** A execução inicial do scanner estático de segurança Checkov apontou **23 falhas** nos módulos Terraform de GKE, Cloud SQL, VPC e WIF.

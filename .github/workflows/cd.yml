@@ -69,17 +69,6 @@ jobs:
         with:
           version: v3.16.1
 
-      - name: Install External Secrets Operator (CRDs)
-        if: env.WIF_PROVIDER != ''
-        run: |
-          helm repo add external-secrets https://charts.external-secrets.io
-          helm repo update
-          helm upgrade --install external-secrets external-secrets/external-secrets \
-            --namespace external-secrets \
-            --create-namespace \
-            --set installCRDs=true \
-            --wait
-
       - name: Deploy Comments API Helm Chart
         if: env.WIF_PROVIDER != ''
         run: |
