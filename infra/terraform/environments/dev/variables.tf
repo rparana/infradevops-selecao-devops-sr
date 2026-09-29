@@ -20,3 +20,9 @@ variable "github_repo" {
   type        = string
   default     = "rparana/infradevops-selecao-devops-sr"
 }
+
+variable "provider_id" {
+  description = "ID do Workload Identity Provider"
+  type        = string
+  default     = "github-provider-v2"
+}

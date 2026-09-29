@@ -75,4 +75,5 @@ module "workload_identity_federation" {
   source      = "../../modules/workload_identity_federation"
   project_id  = var.project_id
   github_repo = var.github_repo
+  provider_id = var.provider_id
 }

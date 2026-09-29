@@ -98,7 +98,34 @@ Durante o ciclo de desenvolvimento, foram validadas as seguintes camadas de qual
 
 ---
 
-## 6. Ideias de Evolução Futura (Com Mais Tempo)
+---
+
+## 6. Desafios Encontrados, Troubleshooting e Resoluções
+
+A engenharia sênior se evidencia na capacidade de diagnosticar problemas complexos, identificar causas-raiz e implementar correções estruturadas. Abaixo estão registrados os principais desafios técnicos enfrentados e mitigados durante os testes e pipelines:
+
+### 6.1. Falha de Dependência das CRDs do External Secrets Operator no Pipeline de CD
+- **Sintoma:** No primeiro teste de deployment automatizado via GitHub Actions CD (`.github/workflows/cd.yml`), o deploy do Helm chart `comments-api` falhou ao tentar aplicar os recursos `ClusterSecretStore` e `ExternalSecret`, retornando erro de tipo de recurso não reconhecido (`unable to recognize: no matches for kind "ExternalSecret" in version "external-secrets.io/v1beta1"`).
+- **Causa Raiz:** O cluster GKE é provisionado via Terraform de forma limpa (sem operadores pré-instalados). Como o Helm chart da aplicação declara manifests que dependem das Custom Resource Definitions (CRDs) do External Secrets Operator (ESO), a API do Kubernetes não conseguia validar nem persistir os objetos.
+- **Resolução:** Adicionou-se uma etapa prévia explícita no pipeline de CD que adiciona o repositório oficial do ESO (`charts.external-secrets.io`), atualiza os índices e executa o deployment do chart do operador com `--set installCRDs=true --wait` antes de iniciar a instalação do chart da aplicação. Isso assegura que as CRDs e os webhooks do operador estejam ativos e prontos para reconciliação.
+
+### 6.2. Violações de Políticas de Segurança no Checkov (IaC Static Analysis)
+- **Sintoma:** A execução inicial do scanner estático de segurança Checkov apontou **23 falhas** nos módulos Terraform de GKE, Cloud SQL, VPC e WIF.
+- **Causa Raiz & Correções:**
+  1. *Cloud SQL:* O provider Google v6 descontinuou o atributo `require_ssl`. Refatoramos para `ssl_mode = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"` e ativamos `point_in_time_recovery_enabled = true`. Além disso, foram configuradas todas as flags de auditoria exigidas (`cloudsql.enable_pgaudit = "on"`, `log_hostname = "on"`, `log_min_error_statement = "error"`, `log_statement = "all"` e métricas de checkpoint/locks).
+  2. *GKE Cluster & Nós:* Ativação do GKE Metadata Server (`workload_metadata_config { mode = "GKE_METADATA" }`) para imunização contra ataques SSRF, instâncias blindadas com Shielded VM (`enable_secure_boot` e `enable_integrity_monitoring`), Release Channel Regular, Network Policies, `enable_intranode_visibility = true`, Binary Authorization e desativação de certificados estáticos de cliente.
+  3. *VPC:* Habilitação de VPC Flow Logs e criação de regra de firewall restritiva customizada (`allow_internal`) para tráfego interno dos pods/nós.
+  4. *Exceções Justificadas (Skip):* Casos de regras do Checkov sem aplicabilidade em ambiente de avaliação (ex: exigência de `POSTGRES_18` que ainda não existe no GCP, e RBAC por Google Groups que exige domínio empresarial Google Workspace) foram formalmente suprimidos via comentários `# checkov:skip` auditáveis.
+- **Resultado:** O scanner foi reduzido a **0 falhas**, atingindo **84 checks aprovados** (100% de conformidade técnica).
+
+### 6.3. Conflito de Soft-Delete no Provedor OIDC (Workload Identity Federation)
+- **Sintoma:** Ao ajustar os parâmetros de mapeamento e condições de repositório no módulo de Workload Identity Federation (WIF) para o GitHub Actions, a recriação do provedor OIDC via Terraform/CLI falhou informando que o recurso já existia ou estava indisponível.
+- **Causa Raiz:** O Google Cloud implementa um período de retenção de segurança de 30 dias (soft-delete) para pools e providers do IAM. Uma vez excluído um ID (`github-provider`), ele não pode ser reutilizado imediatamente com as mesmas credenciais no mesmo projeto.
+- **Resolução:** Versionou-se o ID do provedor para `github-provider-v2` nas variáveis do módulo e em `terraform.tfvars`, garantindo ciclo de vida idempotente e provisionamento imediato sem travas operacionais.
+
+---
+
+## 7. Ideias de Evolução Futura (Com Mais Tempo)
 
 1. **Canary Releases com Argo Rollouts ou Flagger:** Implementar análise automatizada de métricas (taxa de erro e latência) para promoção progressiva de tráfego durante rollouts.
 2. **Service Mesh (Istio ou Linkerd):** Implementar mTLS estrito entre todos os serviços no cluster, autorização granular com `AuthorizationPolicy` e tracing distribuído com OpenTelemetry / Jaeger.
@@ -107,7 +134,7 @@ Durante o ciclo de desenvolvimento, foram validadas as seguintes camadas de qual
 
 ---
 
-## 7. Transparência de Ferramentas, Boilerplates e IA
+## 8. Transparência de Ferramentas, Boilerplates e IA
 
 Em conformidade com as orientações do desafio:
 

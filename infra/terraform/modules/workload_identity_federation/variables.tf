@@ -12,7 +12,7 @@ variable "pool_id" {
 variable "provider_id" {
   description = "ID do Workload Identity Provider"
   type        = string
-  default     = "github-provider"
+  default     = "github-provider-v2"
 }
 
 variable "github_repo" {
