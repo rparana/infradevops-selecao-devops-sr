@@ -140,4 +140,4 @@ Em conformidade com as orientações do desafio:
 
 - **Ferramentas de IA Utilizadas:** Pair-programming e automação assistida por IA (Google Antigravity IDE / Gemini 3.8 Flash) utilizada para exploração de trade-offs de design, redação de ADRs, estruturação de manifests e testes de regressão.
 - **Boilerplates / Templates:** Estrutura base de módulos Terraform seguindo as melhores práticas do Google Cloud Foundation Toolkit; instrumentação Prometheus via biblioteca oficial `prometheus-fastapi-instrumentator`.
-- **Tempo Estimado Gasto:** Planejamento e design (1.5h), implementação completa e testes (3.5h).
+- **Tempo Estimado Gasto:** Planejamento e design (1.5h), ajustes e correções (3.5h), implementação completa e testes (3.5h).
