@@ -12,7 +12,7 @@ variable "namespace" {
 variable "chart_version" {
   description = "Versão do Helm chart do External Secrets Operator"
   type        = string
-  default     = "0.10.4"
+  default     = "0.14.3"
 }
 
 variable "service_account_name" {
