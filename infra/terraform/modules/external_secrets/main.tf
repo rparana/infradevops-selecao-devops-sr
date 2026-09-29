@@ -40,6 +40,7 @@ resource "helm_release" "external_secrets" {
   version          = var.chart_version
   namespace        = var.namespace
   create_namespace = true
+  
 
   set {
     name  = "installCRDs"
@@ -61,6 +62,18 @@ resource "helm_release" "external_secrets" {
     value = google_service_account.eso_sa.email
   }
 
+  # Desativa o webhook validador síncrono para prevenir falhas de chamada à API
+  set {
+    name  = "webhook.create"
+    value = "false"
+  }
+
+  # Desativa o cert-controller caso o webhook não esteja ativo
+  set {
+    name  = "certController.create"
+    value = "false"
+  }
+
   wait          = true
   wait_for_jobs = true
   timeout       = 300
@@ -68,4 +81,46 @@ resource "helm_release" "external_secrets" {
   depends_on = [
     google_service_account_iam_member.eso_workload_identity_user
   ]
+}
+
+# ClusterRole declarativa para cobrir as permissões de cache e watch em falta
+resource "kubernetes_cluster_role" "external_secrets_controller_fix" {
+  metadata {
+    name = "external-secrets-controller-fix"
+  }
+
+  rule {
+    api_groups = ["generators.external-secrets.io"]
+    resources  = ["generatorstates"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  rule {
+    api_groups = ["external-secrets.io"]
+    resources  = ["clusterpushsecrets", "pushsecrets"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  depends_on = [helm_release.external_secrets]
+}
+
+# Associação da Role à ServiceAccount do operador
+resource "kubernetes_cluster_role_binding" "external_secrets_controller_fix_binding" {
+  metadata {
+    name = "external-secrets-controller-fix-binding"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.external_secrets_controller_fix.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = "external-secrets"
+    namespace = "external-secrets"
+  }
+
+  depends_on = [kubernetes_cluster_role.external_secrets_controller_fix]
 }

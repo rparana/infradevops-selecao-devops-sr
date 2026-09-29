@@ -123,6 +123,10 @@ A engenharia sênior se evidencia na capacidade de diagnosticar problemas comple
 - **Causa Raiz:** O Google Cloud implementa um período de retenção de segurança de 30 dias (soft-delete) para pools e providers do IAM. Uma vez excluído um ID (`github-provider`), ele não pode ser reutilizado imediatamente com as mesmas credenciais no mesmo projeto.
 - **Resolução:** Versionou-se o ID do provedor para `github-provider-v2` nas variáveis do módulo e em `terraform.tfvars`, garantindo ciclo de vida idempotente e provisionamento imediato sem travas operacionais.
 
+### 6.4. Conflito de versões do Externar Secrets Operator
+- **Sintoma:** Ao separar as responsábilidades sobre a criação do External Secrets Operator e move-lo para o Terraform, foi identificado imcompatibilidade de versões entre os manifests do Helm Chart.
+- **Causa Raiz:** O Terraform estava utilizando a versão estável, porem não foi alterado a versão no Helm.
+- **Resolução:** Alterou-se a versão do External Secrets Operator para a external-secrets.io/v1.
 ---
 
 ## 7. Ideias de Evolução Futura (Com Mais Tempo)
