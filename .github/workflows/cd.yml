@@ -18,6 +18,7 @@ env:
   WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
   WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
   IMAGE_NAME: comments-api
+  ENVIRONMENT: dev
 
 jobs:
   deploy:
@@ -79,6 +80,7 @@ jobs:
             --set image.tag="${{ github.sha }}" \
             --set externalSecrets.enabled=true \
             --set externalSecrets.gcpProjectId="${{ env.PROJECT_ID }}" \
+            --set externalSecrets.remoteRef.key="${{ env.ENVIRONMENT }}-comments-db-url" \
             --wait \
             --timeout 5m
 

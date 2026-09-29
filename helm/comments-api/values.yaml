@@ -98,7 +98,7 @@ externalSecrets:
   targetSecret:
     name: "comments-api-db-secret"
   remoteRef:
-    key: "comments-db-url"
+    key: "dev-comments-db-url"
 
 nodeSelector: {}
 tolerations: []
