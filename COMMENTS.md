@@ -88,15 +88,13 @@ Durante o ciclo de desenvolvimento, foram validadas as seguintes camadas de qual
    - Resultado: `Success! The configuration is valid.`
 6. **Auditoria de Segurança de IaC (Checkov):**
    - Varredura de conformidade CIS Benchmark para GCP sobre todos os módulos de IaC.
-   - Resultado: **89 passed, 0 failed, 5 skipped** (com justificativas arquiteturais). Relatório completo em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
+   - Resultado: **88 passed, 0 failed, 6 skipped** (com justificativas arquiteturais). Relatório completo em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
 7. **Evidências Visuais e Operacionais (Screenshots em `docs/evidences/`):**
    - `terraform-apply.png`: Execução do provisionamento completo da infraestrutura no GCP via Terraform.
    - `cloudsql.png`: Instância Cloud SQL PostgreSQL provisionada com Private IP e políticas de SSL.
    - `gsm.png`: Google Secret Manager com segredos armazenados e integrados ao External Secrets Operator.
    - `prometheus-local.png`: Alvos de scraping ativos e métricas da API sendo coletadas com sucesso.
    - `graffana-local.png`: Dashboard executivo e operacional exibindo latência, taxa de erros e volume de requisições.
-
----
 
 ---
 
@@ -112,21 +110,40 @@ A engenharia sênior se evidencia na capacidade de diagnosticar problemas comple
 ### 6.2. Violações de Políticas de Segurança no Checkov (IaC Static Analysis)
 - **Sintoma:** A execução inicial do scanner estático de segurança Checkov apontou **23 falhas** nos módulos Terraform de GKE, Cloud SQL, VPC e WIF.
 - **Causa Raiz & Correções:**
-  1. *Cloud SQL:* O provider Google v6 descontinuou o atributo `require_ssl`. Refatoramos para `ssl_mode = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"` e ativamos `point_in_time_recovery_enabled = true`. Além disso, foram configuradas todas as flags de auditoria exigidas (`cloudsql.enable_pgaudit = "on"`, `log_hostname = "on"`, `log_min_error_statement = "error"`, `log_statement = "all"` e métricas de checkpoint/locks).
+  1. *Cloud SQL:* O provider Google v6 descontinuou o atributo `require_ssl`. Refatoramos para `ssl_mode = "ENCRYPTED_ONLY"` e ativamos `point_in_time_recovery_enabled = true`. Além disso, foram configuradas todas as flags de auditoria exigidas (`cloudsql.enable_pgaudit = "on"`, `log_hostname = "on"`, `log_min_error_statement = "error"`, `log_statement = "all"` e métricas de checkpoint/locks).
   2. *GKE Cluster & Nós:* Ativação do GKE Metadata Server (`workload_metadata_config { mode = "GKE_METADATA" }`) para imunização contra ataques SSRF, instâncias blindadas com Shielded VM (`enable_secure_boot` e `enable_integrity_monitoring`), Release Channel Regular, Network Policies, `enable_intranode_visibility = true`, Binary Authorization e desativação de certificados estáticos de cliente.
   3. *VPC:* Habilitação de VPC Flow Logs e criação de regra de firewall restritiva customizada (`allow_internal`) para tráfego interno dos pods/nós.
   4. *Exceções Justificadas (Skip):* Casos de regras do Checkov sem aplicabilidade em ambiente de avaliação (ex: exigência de `POSTGRES_18` que ainda não existe no GCP, e RBAC por Google Groups que exige domínio empresarial Google Workspace) foram formalmente suprimidos via comentários `# checkov:skip` auditáveis.
-- **Resultado:** O scanner foi reduzido a **0 falhas**, atingindo **84 checks aprovados** (100% de conformidade técnica).
+- **Resultado:** O scanner foi reduzido a **0 falhas**, atingindo **88 checks aprovados** (100% de conformidade técnica).
 
 ### 6.3. Conflito de Soft-Delete no Provedor OIDC (Workload Identity Federation)
 - **Sintoma:** Ao ajustar os parâmetros de mapeamento e condições de repositório no módulo de Workload Identity Federation (WIF) para o GitHub Actions, a recriação do provedor OIDC via Terraform/CLI falhou informando que o recurso já existia ou estava indisponível.
 - **Causa Raiz:** O Google Cloud implementa um período de retenção de segurança de 30 dias (soft-delete) para pools e providers do IAM. Uma vez excluído um ID (`github-provider`), ele não pode ser reutilizado imediatamente com as mesmas credenciais no mesmo projeto.
 - **Resolução:** Versionou-se o ID do provedor para `github-provider-v2` nas variáveis do módulo e em `terraform.tfvars`, garantindo ciclo de vida idempotente e provisionamento imediato sem travas operacionais.
 
-### 6.4. Conflito de versões do Externar Secrets Operator
-- **Sintoma:** Ao separar as responsábilidades sobre a criação do External Secrets Operator e move-lo para o Terraform, foi identificado imcompatibilidade de versões entre os manifests do Helm Chart.
-- **Causa Raiz:** O Terraform estava utilizando a versão estável, porem não foi alterado a versão no Helm.
-- **Resolução:** Alterou-se a versão do External Secrets Operator para a external-secrets.io/v1.
+### 6.4. Conflito de versões e API Groups do External Secrets Operator
+- **Sintoma:** Ao separar as responsabilidades sobre a criação do External Secrets Operator e movê-lo para o Terraform, foi identificada incompatibilidade de versões e schemas entre os manifests do Helm Chart.
+- **Causa Raiz:** O Terraform instalava a versão upstream estável com a API group `external-secrets.io/v1`, enquanto os templates do chart mantinham compatibilidade com versões legadas.
+- **Resolução:** Padronizou-se o chart da aplicação para `external-secrets.io/v1` em `ClusterSecretStore` e `ExternalSecret`, alinhando os manifests à especificação moderna do operador.
+
+### 6.5. Incompatibilidade de mTLS no Cloud SQL (`TRUSTED_CLIENT_CERTIFICATE_REQUIRED`) vs `ENCRYPTED_ONLY`
+- **Sintoma:** Durante a automação de CD, o deploy do Helm falhava com timeout de 5 minutos aguardando o rollout do Deployment. Nos logs de eventos do pod (`kubectl describe pod`), constatou-se a falha contínua do probe HTTP com código 503 (`Liveness probe failed: HTTP probe failed with statuscode: 503`), resultando em reinicializações constantes do contêiner e estado `CrashLoopBackOff`.
+- **Causa Raiz:** Durante o processo de hardening com o Checkov para satisfazer a regra `CKV_GCP_6`, o atributo `ssl_mode` do Cloud SQL foi configurado como `"TRUSTED_CLIENT_CERTIFICATE_REQUIRED"`. Essa diretiva impõe autenticação mútua TLS (mTLS), exigindo que a aplicação conectada apresente um certificado de cliente SSL assinado pela Certificate Authority (CA) interna da instância Cloud SQL. Como os pods conectam via Private IP (VPC Peering) e não possuem infraestrutura de PKI/certificados de cliente montados via volumes, o PostgreSQL recusava imediatamente o handshake TLS das instâncias da API.
+- **Resolução:** O parâmetro `ssl_mode` no módulo Cloud SQL (`infra/terraform/modules/cloudsql/main.tf`) foi ajustado para `"ENCRYPTED_ONLY"`. Esse modo assegura que todo o tráfego em trânsito seja obrigatoriamente criptografado com SSL/TLS ponta-a-ponta, sem a exigência de certificados de cliente x509, garantindo compatibilidade total com a stack da aplicação e preservando o isolamento e criptografia dentro da rede privada da VPC. A regra `CKV_GCP_6` recebeu supressão formal e documentada no Checkov.
+
+### 6.6. Desacoplamento Arquitetural entre Liveness Probe (`/health/live`) e Readiness Probe (`/health/ready`)
+- **Sintoma:** O probe de vivacidade (Liveness Probe) do Kubernetes provocava reinicializações forçadas do contêiner (`Container failed liveness probe, will be restarted`) assim que ocorria qualquer atraso ou falha temporária de comunicação com o banco de dados. O reinício em loop gerava `CrashLoopBackOff` e impedia que a aplicação completasse seu ciclo de vida ou se recuperasse de oscilações de rede.
+- **Causa Raiz & Antipattern de SRE:** O endpoint unificado `/health` realizava ativamente uma query SQL (`SELECT 1`) no banco de dados. Atrelar o **Liveness Probe** à disponibilidade de serviços downstream (como banco de dados) é um antipattern clássico de engenharia de confiabilidade (SRE). O papel do Liveness Probe é testar exclusivamente se o processo de aplicação e o runtime web estão vivos (evitando impasses de deadlock ou travamentos de thread pool). Quando o banco oscila, matar a aplicação não resolve o problema do banco; pelo contrário, sobrecarrega o cluster com ciclos ininterruptos de reinicialização e perda de conexões.
+- **Resolução Arquitetural de Confiabilidade:**
+  1. **Separação de Endpoints na API (`app/src/main.py`):**
+     - `/health/live` (**Liveness**): Valida unicamente se o servidor web FastAPI / Uvicorn está respondendo a chamadas HTTP, retornando `200 OK` (`{"status": "alive"}`) sem realizar chamadas a recursos externos.
+     - `/health/ready` (**Readiness**): Valida ativamente a prontidão da aplicação em processar tráfego de usuários, executando o healthcheck no banco de dados PostgreSQL (`SELECT 1`). Retorna `200 OK` se o banco estiver conectado ou `503 Service Unavailable` se o banco estiver indisponível.
+     - `/health`: Mantido para retrocompatibilidade, preservando o comportamento original.
+  2. **Configuração nos Probes do Kubernetes (`helm/comments-api/values.yaml`):**
+     - `livenessProbe.httpGet.path`: apontado para `/health/live`.
+     - `readinessProbe.httpGet.path`: apontado para `/health/ready`. Dessa forma, se o banco estiver indisponível, o Kubernetes apenas remove o pod do Service (interrompe o encaminhamento de requisições externas), permitindo que a conexão seja reestabelecida sem matar o processo.
+  3. **Cobertura de Testes Automatizados:** Adicionados testes unitários específicos em `app/tests/test_api.py` (`test_liveness_check` e `test_readiness_check`), garantindo 100% de cobertura e validação preventiva no pipeline de CI.
+
 ---
 
 ## 7. Ideias de Evolução Futura (Com Mais Tempo)

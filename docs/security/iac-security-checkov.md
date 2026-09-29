@@ -10,9 +10,9 @@ O Checkov foi executado sobre todos os módulos (`infra/terraform/modules/`) e s
 
 | Métrica | Estado Inicial | Estado Pós-Hardening | Status |
 | :--- | :---: | :---: | :---: |
-| **Passed Checks** | 59 | **89** | ✅ Aprovado |
+| **Passed Checks** | 59 | **88** | ✅ Aprovado |
 | **Failed Checks** | 23 | **0** | ✅ Zero Falhas |
-| **Skipped Checks** | 0 | **5** | ℹ️ Justificados Arquiteturalmente |
+| **Skipped Checks** | 0 | **6** | ℹ️ Justificados Arquiteturalmente |
 | **Taxa de Conformidade** | 71.9% | **100%** | 🏆 Excelência |
 
 ---
@@ -34,7 +34,7 @@ Arquivo: `infra/terraform/modules/gke/main.tf`
 ### 2.2 Cloud SQL PostgreSQL
 Arquivo: `infra/terraform/modules/cloudsql/main.tf`
 
-- **CKV_GCP_6 (Tráfego Criptografado SSL/TLS):** Configurado `ssl_mode = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"` no bloco `ip_configuration`, garantindo que todas as conexões exijam criptografia e certificados válidos.
+- **CKV_GCP_6 (Tráfego Criptografado SSL/TLS):** Configurado `ssl_mode = "ENCRYPTED_ONLY"` no bloco `ip_configuration`, garantindo tráfego criptografado ponta a ponta na rede privada da VPC sem exigir certificados de cliente mTLS (evitando incompatibilidade de cliente sem PKI dedicada).
 - **CKV2_GCP_20 (Point-in-Time Recovery):** Ativado `point_in_time_recovery_enabled = true` no bloco `backup_configuration` para proteção contra perda acidental de dados.
 - **CKV_GCP_110 (pgAudit):** Ativada a flag `cloudsql.enable_pgaudit = "on"` para auditoria detalhada de operações no banco de dados.
 - **Auditoria de Conexões e Consultas:**
@@ -70,6 +70,7 @@ Em conformidade com a boa engenharia de DevOps, os checks suprimidos possuem **j
 | Check ID | Componente | Descrição da Política | Rationale / Justificativa Arquitetural |
 | :--- | :--- | :--- | :--- |
 | **CKV_GCP_79** | Cloud SQL | Ensure SQL database is using latest Major version | A política do Checkov exige `POSTGRES_18`, versão que **ainda não existe como GA** nem no projeto upstream nem no Cloud SQL do GCP (onde o PostgreSQL 16 é o padrão recomendado e estável). |
+| **CKV_GCP_6** | Cloud SQL | Ensure all Cloud SQL database instances require all incoming connections to use SSL | Em ambiente de rede privada (Private IP via VPC Peering), configurou-se `ssl_mode = "ENCRYPTED_ONLY"`. A política do Checkov espera `TRUSTED_CLIENT_CERTIFICATE_REQUIRED` (mTLS com verificação de certificado do cliente), o que causaria recusa de conexões da aplicação pela ausência de PKI/certificados de cliente nos pods. O tráfego permanece 100% criptografado em trânsito com SSL/TLS ponta-a-ponta. |
 | **CKV_GCP_18** | GKE | Ensure GKE Control Plane is not public | Em ambiente de avaliação/dev, manter o endpoint do control plane acessível a partir de blocos autorizados é requisito operacional para execução dos pipelines do GitHub Actions e kubectl do operador sem necessidade de VPN ou bastion host dedicado. |
 | **CKV_GCP_65** | GKE | Manage Kubernetes RBAC users with Google Groups for GKE | O uso de Google Groups para RBAC exige a vinculação de um domínio corporativo ativo do Google Workspace (Cloud Identity), inexistente em contas de sandbox/avaliação técnica. |
 | **CKV_GCP_69** | GKE Cluster | Ensure the GKE Metadata Server is Enabled | O cluster adota a melhor prática de excluir o node pool default inicial (`remove_default_node_pool = true`). O Workload Identity Server (`GKE_METADATA`) está explicitamente ativo no node pool standalone (`primary_nodes`). |

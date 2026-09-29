@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.src.config import settings
 from app.src.database import check_db_health, get_db, init_db
 from app.src.models import Comment
-from app.src.schemas import CommentCreate, CommentResponse, HealthResponse
+from app.src.schemas import CommentCreate, CommentResponse, HealthResponse, LivenessResponse
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -52,10 +52,40 @@ instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schem
 
 
 @app.get(
+    "/health/live",
+    response_model=LivenessResponse,
+    tags=["Observability"],
+    summary="Liveness probe para Kubernetes (indica que o processo da API está ativo)",
+)
+async def liveness_check() -> LivenessResponse:
+    return LivenessResponse(status="alive", version=settings.APP_VERSION)
+
+
+@app.get(
+    "/health/ready",
+    response_model=HealthResponse,
+    tags=["Observability"],
+    summary="Readiness probe para Kubernetes (indica prontidão para receber tráfego com banco)",
+)
+async def readiness_check() -> HealthResponse:
+    db_healthy = await check_db_health()
+    if not db_healthy:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"status": "not_ready", "database": "disconnected", "version": settings.APP_VERSION},
+        )
+    return HealthResponse(
+        status="ready",
+        database="connected",
+        version=settings.APP_VERSION,
+    )
+
+
+@app.get(
     "/health",
     response_model=HealthResponse,
     tags=["Observability"],
-    summary="Health check probe para Kubernetes (Liveness/Readiness)",
+    summary="Health check probe geral (Liveness/Readiness legado)",
 )
 async def health_check() -> HealthResponse:
     db_healthy = await check_db_health()

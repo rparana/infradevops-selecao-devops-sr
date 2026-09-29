@@ -22,3 +22,9 @@ class HealthResponse(BaseModel):
     status: str = Field("healthy", description="Status da aplicação")
     database: str = Field("connected", description="Status da conexão com banco")
     version: str = Field("1.0.0", description="Versão da aplicação")
+
+
+class LivenessResponse(BaseModel):
+    status: str = Field("alive", description="Status de vivacidade do processo")
+    version: str = Field("1.0.0", description="Versão da aplicação")
+
