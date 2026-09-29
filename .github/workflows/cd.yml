@@ -78,6 +78,7 @@ jobs:
             --set image.repository="${{ env.IMAGE_URI }}" \
             --set image.tag="${{ github.sha }}" \
             --set externalSecrets.enabled=true \
+            --set externalSecrets.gcpProjectId="${{ env.PROJECT_ID }}" \
             --wait \
             --timeout 5m
 

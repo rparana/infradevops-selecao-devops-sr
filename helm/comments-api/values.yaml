@@ -91,6 +91,7 @@ database:
 externalSecrets:
   enabled: false
   refreshInterval: "1h"
+  gcpProjectId: ""
   secretStore:
     name: "gcp-secret-store"
     kind: "ClusterSecretStore"

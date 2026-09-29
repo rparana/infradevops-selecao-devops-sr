@@ -49,9 +49,9 @@ O teste requer dimensionamento consciente com uso de tamanhos mínimos e boas pr
 
 - **Sem chaves estáticas:** O pipeline GitHub Actions conecta no GCP via OIDC (Workload Identity Federation) trocando tokens efêmeros com escopo limitado ao repositório.
 - **Isolamento de Banco:** A instância do Cloud SQL não possui IP público atribuído; o acesso ocorre exclusivamente através de IP privado peered na VPC com `ssl_mode = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"`.
-- **Injeção de Segredos Segura:** A aplicação não armazena credenciais em variáveis de ambiente abertas nos arquivos de manifesto. O External Secrets Operator gerencia a reconciliação direta a partir do GCP Secret Manager.
+- **Injeção de Segredos Segura via Workload Identity:** A aplicação não armazena credenciais em variáveis de ambiente abertas nos arquivos de manifesto. O External Secrets Operator (ESO) utiliza **Workload Identity nativo** (Google Service Account dedicada `external-secrets-sa` vinculada à KSA `external-secrets` com role `roles/secretmanager.secretAccessor`) para sincronizar segredos diretamente do GCP Secret Manager.
 - **Hardening de Container:** A imagem de container roda com usuário sem privilégios (`appuser` UID 10001) e passa por varredura com **Trivy**.
-- **Hardening de IaC (Checkov):** Todo o código Terraform passa por análise estática de conformidade e segurança com o Checkov. O resultado obtido foi de **84 checks aprovados e 0 falhas**, com relatório detalhado disponível em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
+- **Hardening de IaC (Checkov):** Todo o código Terraform passa por análise estática de conformidade e segurança com o Checkov. O resultado obtido foi de **89 checks aprovados e 0 falhas**, com relatório detalhado disponível em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
 
 ---
 
@@ -88,7 +88,7 @@ Durante o ciclo de desenvolvimento, foram validadas as seguintes camadas de qual
    - Resultado: `Success! The configuration is valid.`
 6. **Auditoria de Segurança de IaC (Checkov):**
    - Varredura de conformidade CIS Benchmark para GCP sobre todos os módulos de IaC.
-   - Resultado: **84 passed, 0 failed, 5 skipped** (com justificativas arquiteturais). Relatório completo em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
+   - Resultado: **89 passed, 0 failed, 5 skipped** (com justificativas arquiteturais). Relatório completo em [docs/security/iac-security-checkov.md](docs/security/iac-security-checkov.md).
 7. **Evidências Visuais e Operacionais (Screenshots em `docs/evidences/`):**
    - `terraform-apply.png`: Execução do provisionamento completo da infraestrutura no GCP via Terraform.
    - `cloudsql.png`: Instância Cloud SQL PostgreSQL provisionada com Private IP e políticas de SSL.

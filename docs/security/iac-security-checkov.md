@@ -10,7 +10,7 @@ O Checkov foi executado sobre todos os módulos (`infra/terraform/modules/`) e s
 
 | Métrica | Estado Inicial | Estado Pós-Hardening | Status |
 | :--- | :---: | :---: | :---: |
-| **Passed Checks** | 59 | **84** | ✅ Aprovado |
+| **Passed Checks** | 59 | **89** | ✅ Aprovado |
 | **Failed Checks** | 23 | **0** | ✅ Zero Falhas |
 | **Skipped Checks** | 0 | **5** | ℹ️ Justificados Arquiteturalmente |
 | **Taxa de Conformidade** | 71.9% | **100%** | 🏆 Excelência |
@@ -53,6 +53,13 @@ Arquivo: `infra/terraform/modules/vpc/main.tf`
 Arquivo: `infra/terraform/modules/workload_identity_federation/main.tf`
 
 - **CKV_GCP_125 / CKV_GCP_41 / CKV_GCP_46 (Least Privilege & Keyless IAM):** Mapeamento restrito de claims (`assertion.sub`, `assertion.actor`, `assertion.repository`, `assertion.repository_owner`) e amarração da permissão de Service Account User ao pool federado com escopo mínimo (`roles/container.developer`, `roles/artifactregistry.writer`, `roles/secretmanager.secretAccessor`).
+
+### 2.5 External Secrets Operator & Workload Identity
+Arquivo: `infra/terraform/modules/external_secrets/main.tf`
+
+- **Autenticação Nativa sem Chaves Estáticas (Workload Identity):** Criação de Google Service Account dedicada (`external-secrets-sa`) vinculada via `roles/iam.workloadIdentityUser` à Service Account do Kubernetes (`external-secrets/external-secrets`).
+- **Princípio do Menor Privilégio:** Concessão estrita de `roles/secretmanager.secretAccessor` para acesso somente leitura aos segredos do Secret Manager.
+- **Instalação das CRDs:** Release do Helm com `installCRDs = true` garantindo que o cluster possua os tipos de recurso customizados pré-instalados na camada de plataforma.
 
 ---
 

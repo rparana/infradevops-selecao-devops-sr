@@ -98,9 +98,10 @@ module "workload_identity_federation" {
   provider_id = var.provider_id
 }
 
-# 6. Módulo External Secrets Operator (Operador de plataforma e CRDs via Helm)
+# 6. Módulo External Secrets Operator (Operador de plataforma, CRDs e Workload Identity)
 module "external_secrets" {
   source     = "../../modules/external_secrets"
+  project_id = var.project_id
   depends_on = [module.gke]
 }
 
